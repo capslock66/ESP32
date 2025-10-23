@@ -1,41 +1,42 @@
-# Prerequisites
-*.d
+# Ignorer les dossiers de build PlatformIO
+**/.pio/
+**/.pioenvs/
+**/.piolibdeps/
+**/.sconsign.dblite
+**/.clang_complete
+**/.vscode/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Ignorer les fichiers de configuration temporaires
+**/.DS_Store
+**/.idea/
+**/*.swp
+**/*~
+**/.cache/
 
-# Precompiled Headers
-*.gch
-*.pch
+# Ignorer les binaires et objets compilés
+**/*.elf
+**/*.bin
+**/*.hex
+**/*.map
+**/*.exe
+**/*.o
+**/*.obj
+**/*.a
 
-# Linker files
-*.ilk
 
-# Debugger Files
-*.pdb
+# Ignorer les fichiers de log
+**/*.log
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# Ignorer les fichiers de test générés
+**/test/.output/
 
-# Fortran module files
-*.mod
-*.smod
+# Ignorer les fichiers de dépendances
+**/lib_deps/
+**/.dep/
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# Ignorer les fichiers de sauvegarde
+**/*.bak
+**/*.tmp
 
-# Executables
-*.exe
-*.out
-*.app
-
-# debug information files
-*.dwo
+# Ignorer les fichiers de configuration utilisateur
+**/platformio.ini.bak
