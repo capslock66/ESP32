@@ -6,6 +6,7 @@
 
 // Durée du scan en secondes
 #define SCAN_DURATION 5
+#define LED_PIN 8  // LED intégrée du SuperMini
 
 BLEScan* pBLEScan;
 
@@ -24,6 +25,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 };
 
 void setup() {
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(115200);
   delay(5000);
   Serial.println("Démarrage du scanner BLE...");
@@ -44,7 +46,11 @@ void setup() {
 }
 
 void loop() {
-    delay(5000);
+    digitalWrite(LED_PIN, HIGH);
+    delay(300);
+
+    digitalWrite(LED_PIN, LOW);
+    delay(300);	
     Serial.println("Scan démarré...");
 
   // Lancer le scan pour la durée définie
@@ -53,6 +59,6 @@ void loop() {
   Serial.printf("Scan terminé. Appareils trouvés: %d\n", foundDevices.getCount());
   pBLEScan->clearResults();   // Vider les résultats du scan précédents
 
-  // Attendre avant de scanner à nouveau (par exemple, 10 secondes)
-  delay(10000);
+  // Attendre avant de scanner à nouveau 
+  delay(5000);
 }
