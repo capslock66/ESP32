@@ -184,16 +184,11 @@ void stepperMove(
     }
 
     const unsigned int fullStepsPerRev = 200;
-    long totalSteps = nbTours * fullStepsPerRev * microstepDen;
+    long totalSteps = nbTours * fullStepsPerRev * microstepDen;  // 25 * 200 * 2 = 10000
 
     // vitesse de départ et vitesse max en pas/s
     float startStepsPerSec = 200.0;   // démarrage lent (~1 tr/s en 1/8 microstep)
-    float maxStepsPerSec   = revs_per_sec_max * fullStepsPerRev * microstepDen;
-
-    // rampes = % du mouvement total
-    // long rampSteps = 200; // totalSteps / 10; // 4 = 25% accél, 25% décél, 8 = 12.5%, 10 = 10%
-    // if (rampSteps < 10)
-    //     rampSteps = 10; // sécurité
+    float maxStepsPerSec   = revs_per_sec_max * fullStepsPerRev * microstepDen;  // 5 * 200 * 2 = 2000
 
     tft.fillScreen(ST77XX_BLACK);
     tft.setTextColor(ST77XX_GREEN);
@@ -213,8 +208,8 @@ void stepperMove(
         float currentStepsPerSec = maxStepsPerSec;
 
         // période par pas
-        float period_us = 1e6 / currentStepsPerSec;
-        unsigned long delayLow = (unsigned long)(period_us - STEP_PULSE_US);    // 5
+        float period_us = 1e6 / currentStepsPerSec;  // 500
+        unsigned long delayLow = (unsigned long)(period_us - STEP_PULSE_US);    // 500-5= 495
 
         doStepMotorA=false;
         doStepMotorB=false;
