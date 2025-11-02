@@ -74,17 +74,32 @@ void setup()
 void stepperMove()
 {
     digitalWrite(Dir, HIGH); // LOW: sens horaire, HIGH: sens anti-horaire (mais horaire de l'autre coté du moteur)
+    unsigned long startTime = millis();
+    const unsigned long DURATION = 70000; // 70 seconds
+    int lastPrintSeconds = millis();
+    int stepCount = 0;
     while (true)
     {
         readSensors();
+        unsigned long currentTime = millis() ;
+
+        if (millis() >= lastPrintSeconds + 1000)
+        {
+            stepCount++;
+            Serial.println("Delay: " + String(stepCount) + "/" + String(DURATION/1000) + " seconds");
+            lastPrintSeconds = currentTime;
+        }
+
+        if (!motorRunning || (currentTime - startTime >= DURATION))
+            break;
 
         if (!motorRunning)
             break;
 
         digitalWrite(Step, HIGH);
-        delayMicroseconds(STEP_PULSE_US);   // 5 us
+        delayMicroseconds(STEP_PULSE_US);    // 5 us
         digitalWrite(Step, LOW);
-        delayMicroseconds(1000);            // us
+        delayMicroseconds(10000);            // 10000 us = 10 ms
     }
 }
 
