@@ -2,61 +2,48 @@
 
 #define STEP_PULSE_US   5  // ms
 
-#define LED_PIN        8  // LED intégrée du SuperMini
-
-#define StartClock     0
-#define StopClock      1
+#define LED_PIN         8  // LED intégrée du SuperMini
+#define Start_PIN       0  // Pin de démarrage de l'horloge
 
 // Motor
-#define Dir           10
-#define Step          20
-#define Enabled       21
+#define Dir             10
+#define Step            20
+#define Enabled         21
 
 int readCounter = 0;
 int startClock  = 0;
-int stopClock   = 0;
 bool motorRunning = false;
-
 void readSensors()
 {
     readCounter++;
+    //Serial.println("Counter: " + String(readCounter) );
 
     int oldStartClock = startClock;
-    int oldStopClock  = stopClock;
-
-    startClock = digitalRead(StartClock);       // 0
-    stopClock  = digitalRead(StopClock);        // 1
+    startClock = digitalRead(Start_PIN);       // 0
 
     if (oldStartClock != startClock)
     {
         //Serial.println("StartClock changed from " + String(oldStartClock) + " to " + String(startClock));
         if (startClock == HIGH) {
-            Serial.println("Motor Started");
-            motorRunning = true;
-            digitalWrite(Enabled, LOW); // Activation des drivers (LOW = activé)
-        } else {
+            if (motorRunning)
+            {
+                Serial.println("Motor Stopped");
+                motorRunning = false;
+            }
+            else
+            {
+                Serial.println("Motor Started ");
+                motorRunning = true;
+            }
         }
     }
-    if (oldStopClock != stopClock)
-    {
-        //Serial.println("StopClock changed from " + String(oldStopClock) + " to " + String(stopClock));
-        if (stopClock == HIGH) {
-            Serial.println("Motor Stopped");
-            motorRunning = false;
-            digitalWrite(Enabled, HIGH); // Desactivation des drivers (HIGH = désactivé)
-        }
-    }
-
 }
-
 
 void setup()
 {
 
     pinMode(LED_PIN, OUTPUT);   // 8
-
-    pinMode(StartClock       , INPUT_PULLDOWN);   // 0
-    pinMode(StopClock        , INPUT_PULLDOWN);   // 1
+    pinMode(Start_PIN , INPUT_PULLDOWN);   // 0
 
     pinMode(Dir, OUTPUT);      // 10
     pinMode(Enabled, OUTPUT);  // 21
@@ -108,15 +95,17 @@ void loop()
     readSensors();
     if (motorRunning)
     {
+        digitalWrite(Enabled, LOW); // Activation des drivers (LOW = activé)
         stepperMove();
         motorRunning = false;
         digitalWrite(Enabled, HIGH); // Desactivation des drivers (HIGH = désactivé)
         Serial.println("End of stepper Move");
     } else {
         digitalWrite(LED_PIN, HIGH);
-        delay(300); // LED on for 300 ms
+        delay(100); // LED on for 100 ms
+        readSensors();
         digitalWrite(LED_PIN, LOW);
-        delay(300); // LED off for 300 ms
+        delay(100); // LED off for 100 ms
     }
     //Serial.println("loop clock");
 }
