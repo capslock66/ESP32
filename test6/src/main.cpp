@@ -3,43 +3,47 @@
 #include <SPI.h>
 
 // --- Broches correctes Feather ESP32‑S3 TFT ---
-#define TFT_CS 7
-#define TFT_DC 39
-#define TFT_RST 40
-#define TFT_BL 45
-#define TFT_SCK 36
-#define TFT_MOSI 35
+#define TFT_CS           7
+#define TFT_DC           39
+#define TFT_RST          40
+#define TFT_BL           45
+#define TFT_SCK          36
+#define TFT_MOSI         35
 
 SPIClass spi = SPIClass(FSPI);
 Adafruit_ST7789 tft = Adafruit_ST7789(&spi, TFT_CS, TFT_DC, TFT_RST);
 
 // OpenDoor (both)
-#define OpenDoors       5
-#define CloseDoors      6
+#define OpenDoors        5
+#define CloseDoors       6
 
 // door 1 detection
-#define MaxOpenedDoorA  9
-#define MaxClosedDoorA 10
+#define MaxOpenedDoorA   9
+#define MaxClosedDoorA   10
 
 // Motor A
-#define StepA          11
-#define DirA           12
-#define EnabledA       13
+#define StepA            11
+#define DirA             12
+#define EnabledA         13
 
 // door 2 detection
-#define MaxOpenedDoorB 14
-#define MaxClosedDoorB 15
+#define MaxOpenedDoorB   14
+#define MaxClosedDoorB   15
 
 // Motor B
-#define StepB          16
-#define DirB           17
-#define EnabledB       18
+#define StepB            16
+#define DirB             17
+#define EnabledB         18
+
+// Delays
+#define MaxWaitDoorMoved 10000   // 10000 * 500 micro seconds = 5 seconds open or close
+#define StepPulse        5       // micro seconds
+#define DelayLow         495     // micro seconds
+#define DelayBeforeClose 10000   // micro seconds, 10 seconds
 
 
-#define STEP_PULSE_US 5
-
+//int readCounter    = 0;
 int loopCounter    = 0;
-int readCounter    = 0;
 int openDoors      = 0;
 int closeDoors     = 0;
 int doorsAction    = 0;
@@ -54,10 +58,9 @@ long loopStep      = 0;
 void setup()
 {
     Serial.begin(115200);
-    // while (!Serial)
-    //     ;
+    delay(3000);
 
-    // Serial.println("Init écran...");
+    Serial.println("Screen Init");
 
     // Allume le rétroéclairage
     pinMode(TFT_BL, OUTPUT);
@@ -87,6 +90,7 @@ void setup()
     delay(1000);
 
     // Serial.println("Ecran prêt !");
+    Serial.println("init Gpios");
 
     // Initialisation Gpio
     pinMode(StepA, OUTPUT);     // 11
@@ -107,12 +111,15 @@ void setup()
 
     digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
     digitalWrite(EnabledB, HIGH);
+
+    Serial.println("waiting commands");
 }
 
 void readSensors()
 {
-    readCounter++;
+    //readCounter++;
 
+    bool changed = false;
     int oldOpenDoors      = openDoors;
     int oldCloseDoors     = closeDoors;
     int oldMaxOpenedDoorB = maxOpenedDoorB;
@@ -128,52 +135,62 @@ void readSensors()
     maxOpenedDoorA = digitalRead(MaxOpenedDoorA);  // 9
 
     if (oldOpenDoors != openDoors)
+    {
         Serial.println("OpenDoors changed from " + String(oldOpenDoors) + " to " + String(openDoors));
+        changed = true;
+    }
     if (oldCloseDoors != closeDoors)
-        Serial.println("oldCloseDoors changed from " + String(oldCloseDoors) + " to " + String(closeDoors));
-
+    {
+        Serial.println("CloseDoors changed from " + String(oldCloseDoors) + " to " + String(closeDoors));
+        changed = true;
+    }
     if (oldMaxOpenedDoorB != maxOpenedDoorB)
+    {
         Serial.println("MaxOpenedDoorB changed from " + String(oldMaxOpenedDoorB) + " to " + String(maxOpenedDoorB));
+        changed = true;
+    }
     if (oldMaxClosedDoorB != maxClosedDoorB)
+    {
         Serial.println("MaxClosedDoorB changed from " + String(oldMaxClosedDoorB) + " to " + String(maxClosedDoorB));
+        changed = true;
+    }
     if (oldMaxClosedDoorA != maxClosedDoorA)
+    {
         Serial.println("MaxClosedDoorA changed from " + String(oldMaxClosedDoorA) + " to " + String(maxClosedDoorA));
+        changed = true;
+    }
     if (oldMaxOpenedDoorA != maxOpenedDoorA)
+    {
         Serial.println("MaxOpenedDoorA changed from " + String(oldMaxOpenedDoorA) + " to " + String(maxOpenedDoorA));
+        changed = true;
+    }
+    if (changed)
+    {
+        //char bufStep[6];
+        //snprintf(bufStep, sizeof(bufStep), "%5ld", loopStep);
 
-
+        Serial.println(
+            //String(readCounter)
+            //+ "/"   + bufStep
+            //+ "------"
+            + "B: Max Opened: " + String(maxOpenedDoorB)
+            + ", Max Closed: "  + String(maxClosedDoorB)
+            + ", Motor: "       + String(doStepMotorB)
+            + "------"
+            + "A Max Closed: "  + String(maxClosedDoorA)
+            + ", Max Opened: "  + String(maxOpenedDoorA)
+            + ", Motor: "       + String(doStepMotorA)
+            // + "------"
+            // + ", Open: "   + String(openDoors)
+            // + ", Close: "  + String(closeDoors)
+            // + "------"
+        );
+    }
 }
 
-void printVars()
+
+void stepperMove()
 {
-    char bufStep[6];
-    snprintf(bufStep, sizeof(bufStep), "%5ld", loopStep);
-
-    Serial.println(
-        String(readCounter)
-        + "/"   + bufStep
-        + "------"
-        + ", MaxOB: "  + String(maxOpenedDoorB)
-        + ", MaxCB: "  + String(maxClosedDoorB)
-        + "------"
-        + ", Open: "   + String(openDoors)
-        + ", Close: "  + String(closeDoors)
-        + "------"
-        + ", MaxCA: "  + String(maxClosedDoorA)
-        + ", MaxOA: "  + String(maxOpenedDoorA)
-        + "------"
-        + ", MotorA: " + String(doStepMotorA)
-        + ", MotorB: " + String(doStepMotorB)
-    );
-}
-
-void stepperMove(
-    float revs_per_sec_max,     // 5 tours/s
-    unsigned int microstepDen,  // 2
-    long nbTours)               // 25
-{
-
-
     if (doorsAction == 1)
     {
         digitalWrite(DirA, LOW); // Direction: sens horaire
@@ -183,39 +200,14 @@ void stepperMove(
         digitalWrite(DirB, HIGH);
     }
 
-    const unsigned int fullStepsPerRev = 200;
-    long totalSteps = nbTours * fullStepsPerRev * microstepDen;  // 25 * 200 * 2 = 10000
-
-    // vitesse de départ et vitesse max en pas/s
-    float startStepsPerSec = 200.0;   // démarrage lent (~1 tr/s en 1/8 microstep)
-    float maxStepsPerSec   = revs_per_sec_max * fullStepsPerRev * microstepDen;  // 5 * 200 * 2 = 2000
-
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setTextColor(ST77XX_GREEN);
-
-    tft.setCursor(10, 10);
-    tft.println(String(loopCounter++));
-
-    tft.setCursor(10, 25);
-    tft.println("doorsAction:" + String(doorsAction));
-
-    tft.setCursor(10, 40);
-    tft.println("totalSteps:" + String(totalSteps));
-
-    for (loopStep = 0; loopStep < totalSteps; loopStep++)
+    // Open or close doors is usually done in max 4 seconds,
+    // but loop 10000 times with 500 microseconds = 5 seconds
+    for (loopStep = 0; loopStep < MaxWaitDoorMoved; loopStep++)
     {
-        // calcul de la vitesse courante en pas/s
-        float currentStepsPerSec = maxStepsPerSec;
-
-        // période par pas
-        float period_us = 1e6 / currentStepsPerSec;  // 500
-        unsigned long delayLow = (unsigned long)(period_us - STEP_PULSE_US);    // 500-5= 495
-
         doStepMotorA=false;
         doStepMotorB=false;
 
         readSensors();
-
 
         if (
             ((doorsAction == 1 /*Open the door */ && maxOpenedDoorA == LOW) /*&& openDoors  == HIGH */)  ||
@@ -239,19 +231,19 @@ void stepperMove(
             break;
         }
 
-        //printVars();
+        //Serial.println("Stepping motors. doStepMotorA: " + String(doStepMotorA) + ", doStepMotorB: " + String(doStepMotorB));
 
         if (doStepMotorA) digitalWrite(StepA, HIGH);
         if (doStepMotorB) digitalWrite(StepB, HIGH);
 
         if (doStepMotorA || doStepMotorB)
-            delayMicroseconds(STEP_PULSE_US);   // 5 ms
+            delayMicroseconds(StepPulse);       // 5 micro seconds
 
         if (doStepMotorA) digitalWrite(StepA, LOW);
         if (doStepMotorB) digitalWrite(StepB, LOW);
 
-        if ((doStepMotorA || doStepMotorB) && delayLow > 0)
-            delayMicroseconds(delayLow);        // 5 ms
+        if ((doStepMotorA || doStepMotorB))
+            delayMicroseconds(DelayLow);        // 495 micro seconds
 
     }
 }
@@ -259,29 +251,75 @@ void stepperMove(
 void loop()
 {
     readSensors();
-    //printVars();
 
     doorsAction = 0;
     if (openDoors == HIGH)
-        doorsAction = 1;
+        doorsAction = 1;   // Open the doors
     if (closeDoors == HIGH)
-        doorsAction = 2;
+        doorsAction = 2;   // Close the doors
 
     if (doorsAction != 0)
     {
-        Serial.println("Start of stepper Move");
+        // don't care about what button was pressed. Force open, wait 10 sec then close
+
+        // Open doors
+        //----------------------
+        doorsAction = 1;   // Open the doors
+        Serial.println("Opening doors");
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setTextColor(ST77XX_GREEN);
+        tft.setCursor(10, 10);
+        tft.println(String(loopCounter++));
+        tft.setCursor(10, 25);
+        tft.println("Opening doors");
+
         digitalWrite(EnabledA, LOW); // Activation des drivers (LOW = activé)
         digitalWrite(EnabledB, LOW);
-        stepperMove(
-            5.0,    // revs_per_sec_max : vitesse max = 5 tours/s
-            2,      // microstepDen = 1/2
-            25      // nbTours
-        );
+        delayMicroseconds(500);        // 500 us
+        stepperMove();
         doStepMotorA=false;
         doStepMotorB=false;
         digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
         digitalWrite(EnabledB, HIGH);
-        Serial.println("End of stepper Move");
+
+        // wait 10 sec
+        //----------------------
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setTextColor(ST77XX_GREEN);
+        tft.setCursor(10, 10);
+        tft.println(String(loopCounter++));
+        tft.setCursor(10, 25);
+        tft.println("Waiting 10 seconds to close doors");
+        delay(DelayBeforeClose);       // delay 10 seconds
+
+        // Close doors
+        //----------------------
+        doorsAction = 2;   // Close the doors
+        Serial.println("Closing doors");
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setTextColor(ST77XX_GREEN);
+        tft.setCursor(10, 10);
+        tft.println(String(loopCounter++));
+        tft.setCursor(10, 25);
+        tft.println("Closing doors");
+
+        digitalWrite(EnabledA, LOW); // Activation des drivers (LOW = activé)
+        digitalWrite(EnabledB, LOW);
+        delayMicroseconds(500);        // 500 us
+        stepperMove();
+        doStepMotorA=false;
+        doStepMotorB=false;
+        digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
+        digitalWrite(EnabledB, HIGH);
+
+        Serial.println("Doors closed");
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setTextColor(ST77XX_GREEN);
+        tft.setCursor(10, 10);
+        tft.println(String(loopCounter++));
+        tft.setCursor(10, 25);
+        tft.println("Doors closed");
+
         loopStep = 0;
     }
     //delay(500);
