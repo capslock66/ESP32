@@ -14,36 +14,36 @@ SPIClass spi = SPIClass(FSPI);
 Adafruit_ST7789 tft = Adafruit_ST7789(&spi, TFT_CS, TFT_DC, TFT_RST);
 
 // OpenDoor (both)
-#define OpenDoors        5
-#define CloseDoors       6
+#define OpenDoors_Pin        5
+#define CloseDoors_Pin       6
 
 // door 1 detection
-#define MaxOpenedDoorA   9
-#define MaxClosedDoorA   10
+#define MaxOpenedDoorA_Pin   9
+#define MaxClosedDoorA_Pin   10
 
 // Motor A
-#define StepA            11
-#define DirA             12
-#define EnabledA         13
+#define StepA_Pin            11
+#define DirA_Pin             12
+#define EnabledA_Pin         13
 
 // door 2 detection
-#define MaxOpenedDoorB   14
-#define MaxClosedDoorB   15
+#define MaxOpenedDoorB_Pin   14
+#define MaxClosedDoorB_Pin   15
 
 // Motor B
-#define StepB            16
-#define DirB             17
-#define EnabledB         18
+#define StepB_Pin            16
+#define DirB_Pin             17
+#define EnabledB_Pin         18
 
 // Delays
 #define MaxWaitDoorMoved 10000   // 10000 * 500 micro seconds = 5 seconds open or close
-#define StepPulse        5       // micro seconds
-#define DelayLow         495     // micro seconds
-#define DelayBeforeClose 10000   // micro seconds, 10 seconds
+#define StepPulseHigh        5   // micro seconds
+#define StepPulseLow       700   // micro seconds
+#define DelayBeforeClose    10   // seconds
 
 
 //int readCounter    = 0;
-int loopCounter    = 0;
+//int loopCounter    = 0;
 int openDoors      = 0;
 int closeDoors     = 0;
 int doorsAction    = 0;
@@ -76,41 +76,50 @@ void setup()
 
     // Test d'affichage on 12 lines
     tft.setTextColor(ST77XX_GREEN);
-    tft.setTextSize(1); // 1 Desired text size. 1 is default 6x8, 2 is 12x16, 3 is 18x24, etc
-    tft.setCursor(10, 0);
-    tft.println("line 1: Feather ESP32-S3");
-
-    tft.setTextColor(ST77XX_WHITE);
-    for (int i = 0; i < 11; i++)
-    {
-        tft.setCursor(10, 10 + i * 10);
-        tft.println("Line " + String(i + 2));
-    }
     tft.setTextSize(2); // 1 Desired text size. 1 is default 6x8, 2 is 12x16, 3 is 18x24, etc
-    delay(1000);
+
+    tft.setCursor(10, 10);
+    tft.println("ESP32 Doors");
+
+    tft.setCursor(10, 25);
+    tft.println("Waiting command");
+
+    // tft.setTextColor(ST77XX_WHITE);
+    // for (int i = 0; i < 11; i++)
+    // {
+    //     tft.setCursor(10, 10 + i * 10);
+    //     tft.println("Line " + String(i + 2));
+    // }
+    // tft.setTextSize(2); // 1 Desired text size. 1 is default 6x8, 2 is 12x16, 3 is 18x24, etc
+
+    delay(100);
 
     // Serial.println("Ecran prêt !");
     Serial.println("init Gpios");
 
     // Initialisation Gpio
-    pinMode(StepA, OUTPUT);     // 11
-    pinMode(DirA, OUTPUT);      // 12
-    pinMode(EnabledA, OUTPUT);  // 13
+    pinMode(StepA_Pin, OUTPUT);     // 11
+    pinMode(DirA_Pin, OUTPUT);      // 12
+    pinMode(EnabledA_Pin, OUTPUT);  // 13
 
-    pinMode(StepB, OUTPUT);     // 16
-    pinMode(DirB, OUTPUT);      // 17
-    pinMode(EnabledB, OUTPUT);  // 18
+    pinMode(StepB_Pin, OUTPUT);     // 16
+    pinMode(DirB_Pin, OUTPUT);      // 17
+    pinMode(EnabledB_Pin, OUTPUT);  // 18
 
-    pinMode(OpenDoors       , INPUT_PULLDOWN);   //5
-    pinMode(CloseDoors      , INPUT_PULLDOWN);   //6
-    pinMode(MaxOpenedDoorA  , INPUT_PULLDOWN);   //9
-    pinMode(MaxClosedDoorA  , INPUT_PULLDOWN);   //10
-    pinMode(MaxOpenedDoorB  , INPUT_PULLDOWN);   //14
-    pinMode(MaxClosedDoorB  , INPUT_PULLDOWN);   //15
+    pinMode(OpenDoors_Pin, INPUT_PULLDOWN);   //5
+    pinMode(CloseDoors_Pin, INPUT_PULLDOWN);   //6
+    pinMode(MaxOpenedDoorA_Pin, INPUT_PULLDOWN);   //9
+    pinMode(MaxClosedDoorA_Pin, INPUT_PULLDOWN);   //10
+    pinMode(MaxOpenedDoorB_Pin, INPUT_PULLDOWN);   //14
+    pinMode(MaxClosedDoorB_Pin, INPUT_PULLDOWN);   //15
     delay(100);
 
-    digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
-    digitalWrite(EnabledB, HIGH);
+    // digitalWrite(EnabledA_Pin, HIGH); // Desactivation des drivers (HIGH = désactivé)
+    // digitalWrite(EnabledB_Pin, HIGH);
+
+    digitalWrite(EnabledA_Pin, LOW); // Activation des drivers (LOW = activé)
+    digitalWrite(EnabledB_Pin, LOW);
+    delay(100);
 
     Serial.println("waiting commands");
 }
@@ -127,12 +136,12 @@ void readSensors()
     int oldMaxClosedDoorA = maxClosedDoorA;
     int oldMaxOpenedDoorA = maxOpenedDoorA;
 
-    openDoors      = digitalRead(OpenDoors);       // 5
-    closeDoors     = digitalRead(CloseDoors);      // 6
-    maxOpenedDoorB = digitalRead(MaxOpenedDoorB);  // 14
-    maxClosedDoorB = digitalRead(MaxClosedDoorB);  // 15
-    maxClosedDoorA = digitalRead(MaxClosedDoorA);  // 10
-    maxOpenedDoorA = digitalRead(MaxOpenedDoorA);  // 9
+    openDoors      = digitalRead(OpenDoors_Pin);       // 5
+    closeDoors     = digitalRead(CloseDoors_Pin);      // 6
+    maxOpenedDoorB = digitalRead(MaxOpenedDoorB_Pin);  // 14
+    maxClosedDoorB = digitalRead(MaxClosedDoorB_Pin);  // 15
+    maxClosedDoorA = digitalRead(MaxClosedDoorA_Pin);  // 10
+    maxOpenedDoorA = digitalRead(MaxOpenedDoorA_Pin);  // 9
 
     if (oldOpenDoors != openDoors)
     {
@@ -191,15 +200,6 @@ void readSensors()
 
 void stepperMove()
 {
-    if (doorsAction == 1)
-    {
-        digitalWrite(DirA, LOW); // Direction: sens horaire
-        digitalWrite(DirB, LOW);
-    } else if (doorsAction == 2) {  // close doors
-        digitalWrite(DirA, HIGH); // Direction: sens antihoraire
-        digitalWrite(DirB, HIGH);
-    }
-
     // Open or close doors is usually done in max 4 seconds,
     // but loop 10000 times with 500 microseconds = 5 seconds
     for (loopStep = 0; loopStep < MaxWaitDoorMoved; loopStep++)
@@ -232,95 +232,127 @@ void stepperMove()
         }
 
         //Serial.println("Stepping motors. doStepMotorA: " + String(doStepMotorA) + ", doStepMotorB: " + String(doStepMotorB));
+        digitalWrite(EnabledA_Pin, LOW); // Activation des drivers (LOW = activé)
+        digitalWrite(EnabledB_Pin, LOW);
 
-        if (doStepMotorA) digitalWrite(StepA, HIGH);
-        if (doStepMotorB) digitalWrite(StepB, HIGH);
+        if (doStepMotorA) digitalWrite(StepA_Pin, HIGH);
+        if (doStepMotorB) digitalWrite(StepB_Pin, HIGH);
 
         if (doStepMotorA || doStepMotorB)
-            delayMicroseconds(StepPulse);       // 5 micro seconds
+            delayMicroseconds(StepPulseHigh);       // 5 micro seconds
 
-        if (doStepMotorA) digitalWrite(StepA, LOW);
-        if (doStepMotorB) digitalWrite(StepB, LOW);
+        if (doStepMotorA) digitalWrite(StepA_Pin, LOW);
+        if (doStepMotorB) digitalWrite(StepB_Pin, LOW);
 
         if ((doStepMotorA || doStepMotorB))
-            delayMicroseconds(DelayLow);        // 495 micro seconds
+            delayMicroseconds(StepPulseLow);        // 495 micro seconds
 
     }
+}
+
+void OpenDoors()
+{
+    // Open doors
+    //----------------------
+    doorsAction = 1;   // Open the doors
+    Serial.println("Opening doors");
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setTextColor(ST77XX_GREEN);
+    //tft.setCursor(10, 10);
+    //tft.println(String(loopCounter++));
+    tft.setCursor(10, 25);
+    tft.println("Opening doors");
+
+    digitalWrite(EnabledA_Pin, LOW); // Activation des drivers (LOW = activé)
+    digitalWrite(EnabledB_Pin, LOW);
+
+    digitalWrite(DirA_Pin, LOW); // Direction: sens horaire
+    digitalWrite(DirB_Pin, LOW);
+
+    delay(100);
+
+    stepperMove();
+    doStepMotorA=false;
+    doStepMotorB=false;
+    //digitalWrite(EnabledA_Pin, HIGH); // Desactivation des drivers (HIGH = désactivé)
+    //digitalWrite(EnabledB_Pin, HIGH);
+    doorsAction = 0;
+}
+
+void CloseDoors()
+{
+    // Close doors
+    //----------------------
+    doorsAction = 2;   // Close the doors
+    Serial.println("Closing doors");
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setTextColor(ST77XX_GREEN);
+    //tft.setCursor(10, 10);
+    //tft.println(String(loopCounter++));
+    tft.setCursor(10, 25);
+    tft.println("Closing doors");
+
+    // Activation des drivers (LOW = activé)
+    digitalWrite(EnabledA_Pin, LOW);
+    digitalWrite(EnabledB_Pin, LOW);
+
+    digitalWrite(DirA_Pin, HIGH); // Direction: sens antihoraire
+    digitalWrite(DirB_Pin, HIGH);
+
+    delay(100);
+
+    stepperMove();
+    doStepMotorA=false;
+    doStepMotorB=false;
+
+    // Desactivation des drivers (HIGH = désactivé)
+    digitalWrite(EnabledA_Pin, HIGH);
+    digitalWrite(EnabledB_Pin, HIGH);
+    doorsAction = 0;
+}
+
+void Wait10Seconds()
+{
+    // wait 10 sec
+    //----------------------
+    for (int sec = DelayBeforeClose; sec > 0; sec--)
+    {
+        tft.fillScreen(ST77XX_BLACK);
+        tft.setTextColor(ST77XX_GREEN);
+        //tft.setCursor(10, 10);
+        //tft.println(String(loopCounter++));
+        tft.setCursor(10, 25);
+        tft.println("Wait " + String(sec) + " seconds");
+        delay(1000);       // delay 1 second
+    }
+}
+
+void ShowDoorClosed()
+{
+    Serial.println("Doors closed");
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setTextColor(ST77XX_GREEN);
+    //tft.setCursor(10, 10);
+    //tft.println(String(loopCounter++));
+    tft.setCursor(10, 25);
+    tft.println("Doors closed");
 }
 
 void loop()
 {
     readSensors();
 
-    doorsAction = 0;
     if (openDoors == HIGH)
-        doorsAction = 1;   // Open the doors
-    if (closeDoors == HIGH)
-        doorsAction = 2;   // Close the doors
-
-    if (doorsAction != 0)
     {
-        // don't care about what button was pressed. Force open, wait 10 sec then close
-
-        // Open doors
-        //----------------------
-        doorsAction = 1;   // Open the doors
-        Serial.println("Opening doors");
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setTextColor(ST77XX_GREEN);
-        tft.setCursor(10, 10);
-        tft.println(String(loopCounter++));
-        tft.setCursor(10, 25);
-        tft.println("Opening doors");
-
-        digitalWrite(EnabledA, LOW); // Activation des drivers (LOW = activé)
-        digitalWrite(EnabledB, LOW);
-        delayMicroseconds(500);        // 500 us
-        stepperMove();
-        doStepMotorA=false;
-        doStepMotorB=false;
-        digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
-        digitalWrite(EnabledB, HIGH);
-
-        // wait 10 sec
-        //----------------------
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setTextColor(ST77XX_GREEN);
-        tft.setCursor(10, 10);
-        tft.println(String(loopCounter++));
-        tft.setCursor(10, 25);
-        tft.println("Waiting 10 seconds to close doors");
-        delay(DelayBeforeClose);       // delay 10 seconds
-
-        // Close doors
-        //----------------------
-        doorsAction = 2;   // Close the doors
-        Serial.println("Closing doors");
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setTextColor(ST77XX_GREEN);
-        tft.setCursor(10, 10);
-        tft.println(String(loopCounter++));
-        tft.setCursor(10, 25);
-        tft.println("Closing doors");
-
-        digitalWrite(EnabledA, LOW); // Activation des drivers (LOW = activé)
-        digitalWrite(EnabledB, LOW);
-        delayMicroseconds(500);        // 500 us
-        stepperMove();
-        doStepMotorA=false;
-        doStepMotorB=false;
-        digitalWrite(EnabledA, HIGH); // Desactivation des drivers (HIGH = désactivé)
-        digitalWrite(EnabledB, HIGH);
-
-        Serial.println("Doors closed");
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setTextColor(ST77XX_GREEN);
-        tft.setCursor(10, 10);
-        tft.println(String(loopCounter++));
-        tft.setCursor(10, 25);
-        tft.println("Doors closed");
-
-        loopStep = 0;
+        OpenDoors();
+        Wait10Seconds();
+        CloseDoors();
+        ShowDoorClosed();
     }
-    //delay(500);
+
+    if (closeDoors == HIGH)
+    {
+        CloseDoors();
+        ShowDoorClosed();
+    }
 }
