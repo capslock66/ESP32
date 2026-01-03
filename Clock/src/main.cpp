@@ -84,9 +84,15 @@ void stepperMove()
             break;
 
         digitalWrite(Step, HIGH);
-        delayMicroseconds(STEP_PULSE_US);    // 5 us
+        delayMicroseconds(500);
         digitalWrite(Step, LOW);
-        delayMicroseconds(10000);            // 10000 us = 10 ms
+        delayMicroseconds(5000);
+
+        // total period = 500 + 5000 = 5500 us = 0.0055 s
+        // freq = 1 / 0.0055 = 181.818 Hz
+        // duty+ = (500 / 5500) * 100 = 9.09%
+
+        // 
     }
 }
 
