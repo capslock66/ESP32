@@ -6,48 +6,48 @@ bool doConnect = false;
 bool connected = false;
 NimBLEAddress* pServerAddress = nullptr;
 
-// UUIDs standards pour HID (clavier/télécommande)
+// Standard UUIDs for HID (keyboard/remote)
 static BLEUUID serviceUUID("1812"); // Human Interface Device
 
-// Callback pour les notifications des touches pressées
+// Callback for keypress notifications
 void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, size_t length, bool isNotify) {
-    Serial.print("🎮 Touche détectée - Données brutes: ");
+    Serial.print("🎮 Key detected - Raw data: ");
     for (size_t i = 0; i < length; i++) {
         Serial.printf("0x%02X ", pData[i]);
     }
     Serial.println();
 
-    // Interprétation basique des données HID
+    // Basic interpretation of HID data
     if (length >= 2) {
         uint8_t modifier = pData[0];
         uint8_t keycode = pData[1];
 
         if (keycode != 0) {
-            Serial.printf("   ➜ Code touche: 0x%02X, Modificateur: 0x%02X\n", keycode, modifier);
+            Serial.printf("   ➜ Keycode: 0x%02X, Modifier: 0x%02X\n", keycode, modifier);
         }
     }
 }
 
-// Callback pour les événements du client
+// Client event callbacks
 class ClientCallbacks : public NimBLEClientCallbacks {
     void onConnect(NimBLEClient* pClient) {
-        Serial.println("✓ Connecté à la télécommande!");
+        Serial.println("✓ Connected to remote!");
         connected = true;
     }
 
     void onDisconnect(NimBLEClient* pClient) {
-        Serial.println("✗ Déconnecté de la télécommande");
+        Serial.println("✗ Disconnected from remote");
         connected = false;
-        // Redémarrer le scan
-        Serial.println("Redémarrage du scan...\n");
+        // Restart the scan
+        Serial.println("Restarting scan...\n");
         delay(1000);
         NimBLEDevice::getScan()->start(0);
     }
 };
 
 bool connectToServer() {
-    Serial.println("\n=== Tentative de connexion ===");
-    Serial.print("Adresse: ");
+    Serial.println("\n=== Attempting connection ===");
+    Serial.print("Address: ");
     Serial.println(pServerAddress->toString().c_str());
 
     if (pClient == nullptr) {
@@ -55,17 +55,17 @@ bool connectToServer() {
         pClient->setClientCallbacks(new ClientCallbacks());
     }
 
-    Serial.println("Connexion en cours...");
+    Serial.println("Connecting...");
     if (!pClient->connect(*pServerAddress)) {
-        Serial.println("❌ Échec de connexion");
+        Serial.println("❌ Connection failed");
         return false;
     }
 
-    Serial.println("✓ Connexion physique établie");
+    Serial.println("✓ Physical connection established");
     delay(1000);
 
-    // Lister tous les services disponibles
-    Serial.println("\n--- Services disponibles ---");
+    // List all available services
+    Serial.println("\n--- Available services ---");
     auto services = pClient->getServices(true);
 
     if (services.size() > 0) {
@@ -73,13 +73,13 @@ bool connectToServer() {
             Serial.print("Service UUID: ");
             Serial.println(service->getUUID().toString().c_str());
 
-            // Lister les caractéristiques de chaque service
+            // List characteristics of each service
             auto characteristics = service->getCharacteristics(true);
             if (characteristics.size() > 0) {
                 for (auto characteristic : characteristics) {
-                    Serial.print("  ├─ Caractéristique: ");
+                    Serial.print("  ├─ Characteristic: ");
                     Serial.print(characteristic->getUUID().toString().c_str());
-                    Serial.print(" | Propriétés: ");
+                    Serial.print(" | Properties: ");
                     if (characteristic->canRead()) Serial.print("READ ");
                     if (characteristic->canWrite()) Serial.print("WRITE ");
                     if (characteristic->canNotify()) Serial.print("NOTIFY ");
@@ -89,19 +89,19 @@ bool connectToServer() {
             }
         }
     } else {
-        Serial.println("❌ Aucun service trouvé");
+        Serial.println("❌ No services found");
     }
     Serial.println("---------------------------\n");
 
-    // Chercher le service HID
+    // Look for HID service
     NimBLERemoteService* pRemoteService = pClient->getService(serviceUUID);
     if (pRemoteService == nullptr) {
-        Serial.println("⚠ Service HID (1812) non trouvé");
-        Serial.println("La télécommande utilise peut-être un autre service");
-        Serial.println("Vérifiez la liste ci-dessus\n");
+        Serial.println("⚠ HID service (1812) not found");
+        Serial.println("The remote may use a different service");
+        Serial.println("Check the list above\n");
 
-        // Essayer de s'abonner à TOUTES les caractéristiques notify disponibles
-        Serial.println("Tentative d'abonnement à toutes les caractéristiques notify...");
+        // Try subscribing to ALL available notify characteristics
+        Serial.println("Attempting to subscribe to all notify characteristics...");
         bool anySubscribed = false;
 
         if (services.size() > 0) {
@@ -110,14 +110,14 @@ bool connectToServer() {
                 if (chars.size() > 0) {
                     for (auto pChar : chars) {
                         if (pChar->canNotify()) {
-                            Serial.print("  ➜ Abonnement à: ");
+                            Serial.print("  ➜ Subscribing to: ");
                             Serial.println(pChar->getUUID().toString().c_str());
 
                             if (pChar->subscribe(true, notifyCallback)) {
-                                Serial.println("    ✓ Abonnement réussi!");
+                                Serial.println("    ✓ Subscription succeeded!");
                                 anySubscribed = true;
                             } else {
-                                Serial.println("    ✗ Échec");
+                                Serial.println("    ✗ Failed");
                             }
                         }
                     }
@@ -126,45 +126,45 @@ bool connectToServer() {
         }
 
         if (anySubscribed) {
-            Serial.println("\n✓ Au moins un abonnement réussi!");
+            Serial.println("\n✓ At least one subscription succeeded!");
             return true;
         } else {
-            Serial.println("\n❌ Aucun abonnement réussi");
+            Serial.println("\n❌ No subscriptions succeeded");
             pClient->disconnect();
             return false;
         }
     }
 
-    Serial.println("✓ Service HID trouvé!");
+    Serial.println("✓ HID service found!");
 
-    // S'abonner aux caractéristiques notify du service HID
+    // Subscribe to notify characteristics of the HID service
     auto pCharacteristics = pRemoteService->getCharacteristics(true);
 
     if (pCharacteristics.size() > 0) {
-        Serial.println("Abonnement aux caractéristiques notify du service HID...");
+        Serial.println("Subscribing to HID service notify characteristics...");
         bool subscribed = false;
 
         for (auto pChar : pCharacteristics) {
             if (pChar->canNotify()) {
-                Serial.print("  ➜ Abonnement à: ");
+                Serial.print("  ➜ Subscribing to: ");
                 Serial.println(pChar->getUUID().toString().c_str());
 
                 if (pChar->subscribe(true, notifyCallback)) {
-                    Serial.println("    ✓ Abonnement réussi!");
+                    Serial.println("    ✓ Subscription succeeded!");
                     subscribed = true;
                 } else {
-                    Serial.println("    ✗ Échec");
+                    Serial.println("    ✗ Failed");
                 }
             }
         }
 
         if (!subscribed) {
-            Serial.println("\n❌ Aucun abonnement notify réussi");
+            Serial.println("\n❌ No notify subscriptions succeeded");
             pClient->disconnect();
             return false;
         }
     } else {
-        Serial.println("❌ Aucune caractéristique trouvée");
+        Serial.println("❌ No characteristics found");
         pClient->disconnect();
         return false;
     }
@@ -175,25 +175,23 @@ bool connectToServer() {
 // Callback pour le scan
 class ScanCallbacks : public NimBLEScanCallbacks {
     void onDiscovered(const NimBLEAdvertisedDevice* advertisedDevice) {
-        Serial.print("📡 ");
-        Serial.print("==== OnDiscovered ==== \n");
+        Serial.print("📡 Device discovered with Mac address ");
         Serial.print(advertisedDevice->getAddress().toString().c_str());
 
         if (advertisedDevice->haveName()) {
             Serial.print(" | ");
             Serial.print(advertisedDevice->getName().c_str());
         } else {
-            Serial.print(" | (pas de nom)");
+            Serial.print(" | (no name)");
         }
 
         Serial.print(" | RSSI: ");
         Serial.print(advertisedDevice->getRSSI());
 
-        // Afficher le type d'adresse
         Serial.print(" | Type: ");
         Serial.print(advertisedDevice->getAddressType());
 
-        // Afficher les UUIDs de service
+        // Show service UUIDs
         if (advertisedDevice->haveServiceUUID()) {
             Serial.print(" | Services: ");
             for (int i = 0; i < advertisedDevice->getServiceUUIDCount(); i++) {
@@ -204,33 +202,35 @@ class ScanCallbacks : public NimBLEScanCallbacks {
 
         Serial.println();
 
-        // Détecter par adresse MAC connue (votre télécommande BLE-M3)
-        if (advertisedDevice->getAddress().toString() == "2a:07:98:01:38:9b") {
-            Serial.println("\n🎮 >>> TÉLÉCOMMANDE BLE-M3 DÉTECTÉE! <<<");
-            Serial.print(">>> Adresse MAC: ");
-            Serial.println(advertisedDevice->getAddress().toString().c_str());
+        // Detect by known MAC address
+        auto addrStr = advertisedDevice->getAddress().toString();
+        if (addrStr == "2a:07:98:01:38:9b" || addrStr == "b8:f1:77:e1:7f:96" || addrStr == "99:99:04:04:14:83") {
+            Serial.println("\n🎮 >>> REMOTE DETECTED! <<<");
+            // Serial.print(">>> MAC Address: ");
+            // Serial.println(advertisedDevice->getAddress().toString().c_str());
 
             NimBLEDevice::getScan()->stop();
             pServerAddress = new NimBLEAddress(advertisedDevice->getAddress());
             doConnect = true;
         }
-        // Chercher un appareil HID
-        else if (advertisedDevice->isAdvertisingService(serviceUUID)) {
-            Serial.println("\n🎮 >>> TÉLÉCOMMANDE HID DÉTECTÉE! <<<");
-            Serial.print(">>> Adresse MAC: ");
-            Serial.println(advertisedDevice->getAddress().toString().c_str());
 
-            NimBLEDevice::getScan()->stop();
-            pServerAddress = new NimBLEAddress(advertisedDevice->getAddress());
-            doConnect = true;
-        }
-        // Détecter par nom "BLE-M3"
+        // Look for an HID device
+        // else if (advertisedDevice->isAdvertisingService(serviceUUID)) {
+        //     Serial.println("\n🎮 >>> HID REMOTE DETECTED! <<<");
+        //     Serial.print(">>> MAC Address: ");
+        //     Serial.println(advertisedDevice->getAddress().toString().c_str());
+
+        //     NimBLEDevice::getScan()->stop();
+        //     pServerAddress = new NimBLEAddress(advertisedDevice->getAddress());
+        //     doConnect = true;
+        // }
+
+        // Detect by name "BLE-M3" or "Yiser-J6" or "Game-pad"
         else if (advertisedDevice->haveName()) {
             String name = String(advertisedDevice->getName().c_str());
-            if (name == "BLE-M3" || name.indexOf("remote") >= 0 ||
-                name.indexOf("keyboard") >= 0 || name.indexOf("kb") >= 0) {
-                Serial.println("\n🎮 >>> Télécommande détectée (par nom) <<<");
-                Serial.print(">>> Adresse MAC: ");
+            if (name == "BLE-M3" || name == "Yiser-J6" || name == "Game-pad") {
+            Serial.println("\n🎮 >>> Remote detected (by name) <<<");
+            Serial.print(">>> MAC Address: ");
                 Serial.println(advertisedDevice->getAddress().toString().c_str());
 
                 NimBLEDevice::getScan()->stop();
@@ -241,7 +241,7 @@ class ScanCallbacks : public NimBLEScanCallbacks {
     }
 
     void onScanEnd(NimBLEScanResults results) {
-        Serial.println("--- Scan terminé ---\n");
+        Serial.println("--- Scan finished ---\n");
     }
 };
 
@@ -249,25 +249,27 @@ void setup() {
     Serial.begin(115200);
     delay(5000);
 
-    Serial.println("\n╔════════════════════════════════════════╗");
-    Serial.println("║  Détection Télécommande BLE           ║");
-    Serial.println("║  ESP32-C3 + NimBLE 2.3.7              ║");
-    Serial.println("╚════════════════════════════════════════╝\n");
+    Serial.println("\n");
+    Serial.println("╔════════════════════════════════════════╗");
+    Serial.println("║  BLE Remote Detection                  ║");
+    Serial.println("║  ESP32-C3 + NimBLE 2.3.7               ║");
+    Serial.println("╚════════════════════════════════════════╝");
+    Serial.println("\n");
 
-    // Initialiser NimBLE (sans callbacks de sécurité)
+    // Initialize NimBLE (no security callbacks)
     NimBLEDevice::init("ESP32-C3");
 
-    // Configurer le scan
+    // Configure the scan
     NimBLEScan* pBLEScan = NimBLEDevice::getScan();
     pBLEScan->setScanCallbacks(new ScanCallbacks());
     pBLEScan->setActiveScan(true);
     pBLEScan->setInterval(100);
     pBLEScan->setWindow(99);
-    pBLEScan->setDuplicateFilter(true); // Éviter les logs répétés
+    pBLEScan->setDuplicateFilter(true); // Avoid repeated logs
 
-    Serial.println("🔍 Démarrage du scan BLE...");
-    Serial.println("💡 Mettez la télécommande en mode appairage");
-    Serial.println("💡 (LED clignotante)\n");
+    Serial.println("🔍 Starting BLE scan...");
+    Serial.println("💡 Put the remote in pairing mode");
+    Serial.println("💡 (blinking LED)\n");
 
     pBLEScan->start(0);
 }
@@ -276,16 +278,17 @@ void loop() {
     if (doConnect) {
         doConnect = false;
         if (connectToServer()) {
-            Serial.println("\n╔════════════════════════════════════════╗");
-            Serial.println("║  ✓ CONNECTÉ ET PRÊT!                  ║");
-            Serial.println("║  Appuyez sur les touches...           ║");
-            Serial.println("╚════════════════════════════════════════╝\n");
+            Serial.println("\n");
+            Serial.println("╔════════════════════════════════════════╗");
+            Serial.println("║  ✓ CONNECTED AND READY!                ║");
+            Serial.println("║  Press buttons...                      ║");
+            Serial.println("╚════════════════════════════════════════╝");
+            Serial.println("\n");
         } else {
-            Serial.println("\n⚠ Échec - Reprise du scan dans 3s...\n");
+            Serial.println("\n⚠ Failed - restarting scan in 3s...\n");
             delay(3000);
             NimBLEDevice::getScan()->start(0);
         }
     }
-
     delay(100);
 }
